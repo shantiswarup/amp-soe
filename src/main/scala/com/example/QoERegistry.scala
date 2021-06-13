@@ -33,13 +33,6 @@ object QoERegistry {
 
   def apply(): Behavior[AddParams] = registry(Nil)
 
-  private def timeBetweenEventsInSeconds(e1: QoEParams, e2: QoEParams): Long = {
-    val d1 = new Date(e1.timestamp)
-    val d2 = new Date(e2.timestamp)
-    val diff = d1.getTime - d2.getTime
-    TimeUnit.MILLISECONDS.toSeconds(diff)
-  }
-
   private def timeBetweenEventsInMillis(e1: QoEParams, e2: QoEParams): Long = {
     val d1 = new Date(e1.timestamp)
     val d2 = new Date(e2.timestamp)
@@ -47,8 +40,8 @@ object QoERegistry {
     TimeUnit.MILLISECONDS.toMillis(diff)
   }
 
-  private def isEventsInSeconds(curr: QoEParams, events: List[QoEParams], seconds: Long = 10): Boolean = {
-    events.forall(timeBetweenEventsInSeconds(curr, _) < seconds)
+  private def isEventsInSeconds(curr: QoEParams, events: List[QoEParams], seconds: Long = 10000): Boolean = {
+    events.forall(timeBetweenEventsInMillis(curr, _) < seconds)
   }
 
 
@@ -71,7 +64,7 @@ object QoERegistry {
               .filter(state => state.eventType == WAITING || state.eventType == RESUME).take(5).sortBy(_.timestamp).reverse
             if (bufferEvents.length > 4) {
               val timeBetween: Iterator[Long] = bufferEvents.drop(1).grouped(2).map(x => timeBetweenEventsInMillis(x.head, x.last))
-              if (timeBetween.forall(_ > 500) && timeBetweenEventsInSeconds(qoEParams, bufferEvents.last) <= 30) {
+              if (timeBetween.forall(_ > 500) && timeBetweenEventsInMillis(qoEParams, bufferEvents.last) <= 30000) {
                 Some("number of buffering events longer than 500ms is higher than 3 per 30 secs")
               } else None
             } else None
